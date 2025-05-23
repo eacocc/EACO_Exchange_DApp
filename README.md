@@ -25,4 +25,5 @@ CA:</br>
 DqfoyZH96RnvZusSp3Cdncjpyp3C74ZmJzGhjmHnDHRH</br>
 As the MEME coin of villagers around the Earth, EACO aims to promote environmental protection and sustainable development, integrate decentralized finance and digital assets, and become the representative of future personal core assets.</br>
 EACO(Earth's Best Coin)</br>
+EACO的本质​​：通过技术消除货币壁垒，让地球村的每个人都能平等参与地球经济建设。​​代码即货币，共识即边界​​。</br>
 discuss with email:eaco2cc@gmail.com </br>
