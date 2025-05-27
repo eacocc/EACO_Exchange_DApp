@@ -1,10 +1,10 @@
 # EACO_Exchange_DApp
 $e </br>
-EACO_Exchange_DApp,eacoswap beta0.101 </br>
+E&EACO_Exchange_DApp,eacoswap beta0.101 </br>
 How to use Eaco to quickly access the exchange and circulation of assets such as the world's top 20 legal currencies and the top 20 digital currencies?</br>
 如何应用eaco尽快接入全球前20-100大的法定货币和前20-100大数字货币等资产的兑换和流通？</br>
 【EACO代码重构e文明】 代码e即财富，</br>
-EACO(Earth’s Best Coin) </br>
+E&EACO(Earth’s Best Coin) </br>
 e(eaco),Global Village netizens’ own MEME.</br>
 EACO is Earth’s best friend;</br>
 $e=$eaco.计算劳动价值，量化地球资源;</br>
@@ -25,6 +25,6 @@ EACO ($e) is an innovative small currency, the only $e in the universe and the e
 CA:</br>
 DqfoyZH96RnvZusSp3Cdncjpyp3C74ZmJzGhjmHnDHRH</br>
 As the MEME coin of villagers around the Earth, EACO aims to promote environmental protection and sustainable development, integrate decentralized finance and digital assets, and become the representative of future personal core assets.</br>
-EACO(Earth's Best Coin)</br>
-EACO swap(Exchange) 的本质​​：通过技术消除货币壁垒，让地球村的每个人都能平等参与地球经济建设。​​代码即货币，共识即边界​​。</br>
+E&EACO(Earth's Best Coin)</br>
+E&EACO swap(Exchange) 的本质​​：通过技术消除货币壁垒，让地球村的每个人都能平等参与地球经济建设。​​代码即货币，共识即边界​​。</br>
 discuss with email:eaco2cc@gmail.com </br>
