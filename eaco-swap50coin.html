@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh" dir="ltr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>EACO 全球汇率监控 - 代码e即财富-全球前50大数字货币兑换EACO汇率监控</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f1a2c, #1e3c72);
+            color: #e0f7fa;
+            line-height: 1.6;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(0, 30, 60, 0.7);
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        }
+        h1, h2 { color: #4fc3f7; margin-bottom: 10px; }
+        .tagline { font-size: 1.1em; color: #a5d6a7; }
+        .contract { font-size: 0.9em; color: #90caf9; margin-top: 8px; word-break: break-all; }
+        .swap-links { margin-top: 10px; }
+        .swap-links a { color: #80deea; margin: 0 5px; text-decoration: underline; }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .lang-selector, .refresh-btn {
+            padding: 8px 16px;
+            background: #0277bd;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .refresh-btn:hover { background: #039be5; }
+        .last-updated { font-size: 0.85em; color: #b3e5fc; }
+
+        .currency-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: rgba(0, 30, 60, 0.5);
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            margin-bottom: 30px;
+        }
+        .currency-table th, .currency-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #0d47a1;
+        }
+        .currency-table th {
+            background: #0d47a1;
+            color: #80deea;
+            font-weight: 600;
+        }
+        .currency-table tr:hover { background: rgba(77, 182, 172, 0.2); }
+        .currency-table .eaco-amount { font-weight: bold; color: #4fc3f7; }
+
+        .chart-container {
+            background: rgba(0, 30, 60, 0.5);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .chart-title { text-align: center; margin-bottom: 20px; color: #4fc3f7; }
+
+        footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #b3e5fc;
+            font-size: 0.9em;
+        }
+        footer a { color: #80deea; margin: 0 8px; text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 768px) {
+            .controls { flex-direction: column; align-items: stretch; }
+            .currency-table th, .currency-table td { padding: 8px 10px; font-size: 0.9em; }
+            h1 { font-size: 1.5em; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="pageTitle">全球前50大数字货币兑换EACO汇率监控</h1>
+        <p class="tagline" id="tagline">EACO is Earth’s best friend; $e=$eaco</p>
+        <p class="contract"><strong>SOL Contract:</strong> <span id="contractText">DqfoyZH96RnvZusSp3Cdncjpyp3C74ZmJzGhjmHnDHRH</span></p>
+        <div class="swap-links">
+            <a href="https://app.meteora.ag/dlmm/6ZfCi3qzhgDN1ygHVYXvfsfrwz8ZhQ7hD5mJtjeuUDyE" target="_blank" id="meteoraLink">E-USDT</a>
+            <a href="https://www.orca.so/pools/Cm6EkxcYNfvxeYDBQ3TGXFqa9NCWvrFKHz4Cfju91dhr" target="_blank" id="orcaLink">E-USDC</a>
+            <a href="https://raydium.io/swap/?inputMint=DqfoyZH96RnvZusSp3Cdncjpyp3C74ZmJzGhjmHnDHRH&outputMint=sol" target="_blank" id="raydiumLink">E-SOL</a>
+        </div>
+    </header>
+
+    <div class="controls">
+        <select class="lang-selector" id="languageSelect">
+            <option value="zh">中文</option>
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="ru">Русский</option>
+            <option value="ar">العربية</option>
+            <option value="hi">हिन्दी</option>
+            <option value="pt">Português</option>
+            <option value="bn">বাংলা</option>
+            <option value="de">Deutsch</option>
+        </select>
+        <button class="refresh-btn" onclick="refreshData()"><span id="refreshText">刷新数据</span></button>
+        <span class="last-updated" id="lastUpdated">最后更新: 尚未加载</span>
+    </div>
+
+    <table class="currency-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th id="symbolHeader">代币符号</th>
+                <th id="nameHeader">名称</th>
+                <th id="priceHeader">价格 (USD)</th>
+                <th id="volumeHeader">24h 交易量</th>
+                <th id="eacoHeader">可兑换 EACO 数量</th>
+            </tr>
+        </thead>
+        <tbody id="currencyTableBody">
+            <!-- 数据由 JS 动态填充 -->
+        </tbody>
+    </table>
+
+    <div class="chart-container">
+        <h2 class="chart-title" id="chartTitle">Top 10 数字货币兑 EACO 汇率趋势</h2>
+        <canvas id="rateChart"></canvas>
+    </div>
+
+    <footer>
+        <p id="footerLine1">【EACO代码重构e文明】代码e即财富 | EACO地球E连接地球和宇宙的一切</p>
+        <p>
+            <a href="https://linktr.ee/web3eaco" target="_blank" id="linktreeLink">Linktree</a> |
+            <a href="https://solscan.io/token/DqfoyZH96RnvZusSp3Cdncjpyp3C74ZmJzGhjmHnDHRH" target="_blank" id="solscanLink">Solscan</a> |
+            <a href="https://x.com/eacocc" target="_blank" id="twitterLink">X (Twitter)</a> |
+            <a href="https://t.me/e_eacocc" target="_blank" id="tgEngLink">English TG</a> |
+            <a href="https://t.me/aieaco" target="_blank" id="tgZhLink">华语社区</a> |
+            <a href="https://t.me/eacoespanish" target="_blank" id="tgEsLink">Español</a>
+        </p>
+        <p id="disclaimer">eaco价格仅供参考，以当时实际交易价格为准</p>
+    </footer>
+
+    <script>
+        // 多语言翻译 (10种语言)
+        const translations = {
+            zh: {
+                pageTitle: "全球前50大数字货币兑换EACO汇率监控",
+                tagline: "EACO is Earth’s best friend; $e=$eaco",
+                symbolHeader: "代币符号",
+                nameHeader: "名称",
+                priceHeader: "价格 (USD)",
+                volumeHeader: "24h 交易量",
+                eacoHeader: "可兑换 EACO 数量",
+                chartTitle: "Top 10 数字货币兑 EACO 汇率趋势",
+                refreshText: "刷新数据",
+                disclaimer: "eaco价格仅供参考，以当时实际交易价格为准",
+                lastUpdated: "最后更新",
+                contract: "SOL 合约地址",
+                meteora: "E-USDT",
+                orca: "E-USDC",
+                raydium: "E-SOL",
+                linktree: "Linktree",
+                solscan: "Solscan",
+                twitter: "X (Twitter)",
+                tgEng: "English TG",
+                tgZh: "华语社区",
+                tgEs: "Español",
+                footer1: "【EACO代码重构e文明】代码e即财富 | EACO地球E连接地球和宇宙的一切"
+            },
+            en: {
+                pageTitle: "Top 50 Cryptocurrencies to EACO Exchange Rate Monitor",
+                tagline: "EACO is Earth’s best friend; $e=$eaco",
+                symbolHeader: "Symbol",
+                nameHeader: "Name",
+                priceHeader: "Price (USD)",
+                volumeHeader: "24h Volume",
+                eacoHeader: "Exchangeable EACO Amount",
+                chartTitle: "Top 10 Cryptos to EACO Exchange Rate Trend",
+                refreshText: "Refresh Data",
+                disclaimer: "EACO prices are for reference only, subject to actual trading price",
+                lastUpdated: "Last Updated",
+                contract: "SOL Contract",
+                meteora: "E-USDT",
+                orca: "E-USDC",
+                raydium: "E-SOL",
+                linktree: "Linktree",
+                solscan: "Solscan",
+                twitter: "X (Twitter)",
+                tgEng: "English TG",
+                tgZh: "Chinese Community",
+                tgEs: "Español",
+                footer1: "[EACO Code Rebuilds e-Civilization] Code e is Wealth | EACO Earth e Connects Everything"
+            },
+            es: {
+                pageTitle: "Monitor de Tipo de Cambio de las 50 Principales Criptomonedas a EACO",
+                tagline: "EACO es el mejor amigo de la Tierra; $e=$eaco",
+                symbolHeader: "Símbolo",
+                nameHeader: "Nombre",
+                priceHeader: "Precio (USD)",
+                volumeHeader: "Volumen 24h",
+                eacoHeader: "Cantidad de EACO Intercambiable",
+                chartTitle: "Tendencia del Tipo de Cambio de las 10 Principales Criptos a EACO",
+                refreshText: "Actualizar Datos",
+                disclaimer: "Los precios de EACO son solo de referencia, sujetos al precio de negociación real",
+                lastUpdated: "Última Actualización",
+                contract: "Contrato SOL",
+                meteora: "E-USDT",
+                orca: "E-USDC",
+                raydium: "E-SOL",
+                linktree: "Linktree",
+                solscan: "Solscan",
+                twitter: "X (Twitter)",
+                tgEng: "TG Inglés",
+                tgZh: "Comunidad China",
+                tgEs: "Español",
+                footer1: "[EACO Reestructura el Código de la e-Civilización] El código e es riqueza | EACO e Conecta Todo"
+            },
+            fr: {
+                pageTitle: "Suivi du Taux de Change des 50 Meilleures Cryptomonnaies vers EACO",
+                tagline: "EACO est le meilleur ami de la Terre ; $e=$eaco",
+                symbolHeader: "Symbole",
+                nameHeader: "Nom",
+                priceHeader: "Prix (USD)",
+                volumeHeader: "Volume 24h",
+                eacoHeader: "Montant d'EACO Échangeable",
+                chartTitle: "Tendance du Taux de Change des 10 Meilleures Crypto vers EACO",
+                refreshText: "Actualiser",
+                disclaimer: "Les prix EACO sont donnés à titre indicatif, soumis au prix de transaction réel",
+                lastUpdated: "Dernière Mise à Jour",
+                contract: "Contrat SOL",
+                meteora: "E-USDT",
+                orca: "E-USDC",
+                raydium: "E-SOL",
+                linktree: "Linktree",
+                solscan: "Solscan",
+                twitter: "X (Twitter)",
+                tgEng: "TG Anglais",
+                tgZh: "Communauté Chinoise",
+                tgEs: "Español",
+                footer1: "[EACO Code Re-construit la Civilisation Numérique] Le code e est la richesse | EACO e relie tout"
+            },
+            ru: {
+                pageTitle: "Мониторинг курса обмена Топ-50 криптовалют на EACO",
+                tagline: "EACO — лучший друг Земли; $e=$eaco",
+                symbolHeader: "Символ",
+                nameHeader: "Название",
+                priceHeader: "Цена (USD)",
+                volumeHeader: "Объём за 24ч",
+                eacoHeader: "Количество обмениваемых EACO",
+                chartTitle: "Тренд курса Топ-10 криптовалют к EACO",
+                refreshText: "Обновить данные",
+                disclaimer: "Цены на EACO приведены для справки, окончательный курс зависит от рыночной сделки",
+                lastUpdated: "Последнее обновление",
+                contract: "Контракт SOL",
+                meteora: "E-USDT",
+                orca: "E-USDC",
+                raydium: "E-SOL",
+                linktree: "Linktree",
+                solscan: "Solscan",
+                twitter: "X (Twitter)",
+                tgEng: "Английский TG",
+                tgZh: "Китайское сообщество",
+                tgEs: "Español",
+                footer1: "[EACO Код перестраивает e-цивилизацию] Код e — это богатство | EACO e соединяет всё"
+            },
+            ar: {
+                pageTitle: "مراقبة سعر صرف أفضل 50 عملة رقمية إلى EACO",
+                tagline: "EACO هو أفضل صديق للأرض؛ $e=$eaco",
+                symbolHeader: "الرمز",
+                nameHeader: "الاسم",
+                priceHeader: "السعر (USD)",
+                volumeHeader: "حجم التداول (24 ساعة)",
+                eacoHeader: "كمية EACO القابلة للتحويل",
+                chartTitle: "اتجاه سعر صرف أفضل 10 عملات رقمية إلى EACO",
+                refreshText: "تحديث البيانات",
+                disclaimer: "أسعار EACO لأغراض إعلامية فقط، وتخضع للسعر الفعلي للتداول",
+                lastUpdated: "آخر تحديث",
+                contract: "عقد SOL",
+                meteora: "E-USDT",
+                orca: "E-USDC",
+                raydium: "E-SOL",
+                linktree: "Linktree",
+                solscan: "Solscan",
+                twitter: "X (Twitter)",
+                tgEng: "الدردشة الإنجليزية",
+                tgZh: "المجتمع الصيني",
+                tgEs: "Español",
+                footer1: "[EACO إعادة هيكلة الكود للحضارة الرقمية] الكود e هو الثروة | EACO e يربط كل شيء"
+            },
+            hi: {
+                pageTitle: "शीर्ष 50 क्रिप्टोकरेंसी से EACO विनिमय दर मॉनिटर",
+                tagline: "EACO पृथ्वी का सबसे अच्छा दोस्त है; $e=$eaco",
+                symbolHeader: "प्रतीक",
+                nameHeader: "नाम",
+                priceHeader: "मूल्य (USD)",
+                volumeHeader: "24 घंटे का आयतन",
+                eacoHeader: "विनिमय योग्य EACO मात्रा",
+                chartTitle: "शीर्ष 10 क्रिप्टो का EACO के प्रति विनिमय दर प्रवृत्ति",
+                refreshText: "डेटा ताज़ा करें",
+                disclaimer: "EACO की कीमतें केवल संदर्भ के लिए हैं, वास्तविक व्यापार मूल्य के अधीन",
+                lastUpdated: "अंतिम अद्यतन",
+                contract: "SOL अनुबंध",
+                meteora: "E-USDT",
+                orca: "E-USDC",
+                raydium: "E-SOL",
+                linktree: "Linktree",
+                solscan: "Solscan",
+                twitter: "X (Twitter)",
+                tgEng: "अंग्रेजी TG",
+                tgZh: "चीनी समुदाय",
+                tgEs: "Español",
+                footer1: "[EACO कोड e सभ्यता को पुनः बनाता है] कोड e ही धन है | EACO e सब कुछ जोड़ता है"
+            },
+            pt: {
+                pageTitle: "Monitor de Taxa de Câmbio das 50 Principais Criptomoedas para EACO",
+                tagline: "EACO é o melhor amigo da Terra; $e=$eaco",
+                symbolHeader: "Símbolo",
+                nameHeader: "Nome",
+                priceHeader: "Preço (USD)",
+                volumeHeader: "Volume 24h",
+                eacoHeader: "Quantidade de EACO Conversível",
+                chartTitle: "Tendência da Taxa de Câmbio das 10 Principais Criptos para EACO",
+                refreshText: "Atualizar Dados",
+                disclaimer: "Os preços do EACO são apenas de referência, sujeitos ao preço real de negociação",
+                lastUpdated: "Última Atualização",
+                contract: "Contrato SOL",
+                meteora: "E-USDT",
+                orca: "E-USDC",
+                raydium: "E-SOL",
+                linktree: "Linktree",
+                solscan: "Solscan",
+                twitter: "X (Twitter)",
+                tgEng: "TG em Inglês",
+                tgZh: "Comunidade Chinesa",
+                tgEs: "Español",
+                footer1: "[EACO Reestrutura o Código da e-Civilização] O código e é riqueza | EACO e conecta tudo"
+            },
+            bn: {
+                pageTitle: "শীর্ষ 50 ক্রিপ্টোকারেন্সি থেকে EACO এক্সচেঞ্জ রেট মনিটর",
+                tagline: "EACO পৃথিবীর সেরা বন্ধু; $e=$eaco",
+                symbolHeader: "প্রতীক",
+                nameHeader: "নাম",
+                priceHeader: "মূল্য (USD)",
+                volumeHeader: "24 ঘন্টার পরিমাণ",
+                eacoHeader: "বিনিময়যোগ্য EACO পরিমাণ",
+                chartTitle: "শীর্ষ 10 ক্রিপ্টো থেকে EACO এক্সচেঞ্জ রেট প্রবণতা",
+                refreshText: "ডেটা রিফ্রেশ করুন",
+                disclaimer: "EACO এর মূল্য শুধুমাত্র তথ্যের জন্য, প্রকৃত লেনদেনের মূল্যের উপর নির্ভরশীল",
+                lastUpdated: "সর্বশেষ আপডেট",
+                contract: "SOL চুক্তি",
+                meteora: "E-USDT",
+                orca: "E-USDC",
+                raydium: "E-SOL",
+                linktree: "Linktree",
+                solscan: "Solscan",
+                twitter: "X (Twitter)",
+                tgEng: "ইংরেজি TG",
+                tgZh: "চীনা কমিউনিটি",
+                tgEs: "Español",
+                footer1: "[EACO কোড e-সভ্যতা পুনর্গঠন করে] কোড e ই সম্পদ | EACO e সবকিছু সংযুক্ত করে"
+            },
+            de: {
+                pageTitle: "Wechselkurs-Monitor für die Top 50 Kryptowährungen zu EACO",
+                tagline: "EACO ist der beste Freund der Erde; $e=$eaco",
+                symbolHeader: "Symbol",
+                nameHeader: "Name",
+                priceHeader: "Preis (USD)",
+                volumeHeader: "24h Volumen",
+                eacoHeader: "Austauschbare EACO-Menge",
+                chartTitle: "Trend des Wechselkurses der Top 10 Kryptos zu EACO",
+                refreshText: "Daten aktualisieren",
+                disclaimer: "EACO-Preise dienen nur als Referenz und unterliegen dem tatsächlichen Handelspreis",
+                lastUpdated: "Letzte Aktualisierung",
+                contract: "SOL-Vertrag",
+                meteora: "E-USDT",
+                orca: "E-USDC",
+                raydium: "E-SOL",
+                linktree: "Linktree",
+                solscan: "Solscan",
+                twitter: "X (Twitter)",
+                tgEng: "Englisch TG",
+                tgZh: "Chinesische Community",
+                tgEs: "Español",
+                footer1: "[EACO Code baut die e-Zivilisation neu auf] Code e ist Reichtum | EACO e verbindet alles"
+            }
+        };
+
+        // 当前语言
+        let currentLang = 'zh';
+
+        // EACO 参考汇率 (USD)
+        const EACO_USD_RATE = 0.0032;
+
+        // 存储历史数据
+        const historyData = {};
+
+        // 图表实例
+        let rateChart = null;
+
+        // 顶级币种 ID 映射 (CoinGecko)
+        const top50Coins = [
+            'bitcoin', 'ethereum', 'tether', 'binancecoin', 'solana',
+            'usd-coin', 'ripple', 'dogecoin', 'cardano', 'avalanche-2',
+            'shiba-inu', 'bitcoin-cash', 'polkadot', 'tron', 'uniswap',
+            'litecoin', 'chainlink', 'vechain', 'stellar', 'theta-network',
+            'okb', 'filecoin', 'wrapped-bitcoin', 'monero', 'terra-luna',
+            'neo', 'bitcoin-sv', 'eos', 'ethereum-classic', 'aave',
+            'iota', 'huobi-token', 'maker', 'ftx-token', 'cosmos',
+            'bittorrent', 'pancakeswap-token', 'tezos', 'waves', 'kusama',
+            'compound-governance-token', 'dai', 'dash', 'nem', 'zcash',
+            'chiliz', 'qtum', 'lisk', 'bitcoin-gold', 'siacoin'
+        ];
+
+        // 中文名称映射
+        const chineseNames = {
+            'bitcoin': '比特币', 'ethereum': '以太坊', 'tether': '泰达币', 'binancecoin': '币安币',
+            'solana': '索尔币', 'usd-coin': 'USD Coin', 'ripple': '瑞波币', 'dogecoin': '狗狗币',
+            'cardano': '艾达币', 'avalanche-2': '雪崩币', 'shiba-inu': '柴犬币', 'bitcoin-cash': '比特币现金',
+            'polkadot': '波卡币', 'tron': '波场币', 'uniswap': '独角兽币', 'litecoin': '莱特币',
+            'chainlink': '链环币', 'vechain': '唯链', 'stellar': '恒星币', 'theta-network': 'Theta币',
+            'okb': 'OKX平台币', 'filecoin': '文件币', 'wrapped-bitcoin': '包装比特币', 'monero': '门罗币',
+            'terra-luna': 'LUNA币', 'neo': '小蚁', 'bitcoin-sv': '比特币SV', 'eos': '柚子币',
+            'ethereum-classic': '以太经典', 'aave': 'AAVE币', 'iota': '埃欧塔', 'huobi-token': 'HTX平台币',
+            'maker': 'Maker币', 'ftx-token': 'FTX平台币', 'cosmos': '阿童木', 'bittorrent': 'BitTorrent币',
+            'pancakeswap-token': '蛋糕币', 'tezos': 'Tezos代币', 'waves': '波币', 'kusama': 'Kusama',
+            'compound-governance-token': 'Compound币', 'dai': 'DAI币', 'dash': '达世币', 'nem': '新经币',
+            'zcash': '大零币', 'chiliz': 'Chiliz', 'qtum': '量子链', 'lisk': '应用链', 'bitcoin-gold': '比特黄金',
+            'siacoin': '云储币'
+        };
+
+        // 西班牙语名称映射
+        const spanishNames = {
+            'bitcoin': 'Bitcoin', 'ethereum': 'Ethereum', 'tether': 'Tether', 'binancecoin': 'Binance Coin',
+            'solana': 'Solana', 'usd-coin': 'USD Coin', 'ripple': 'Ripple', 'dogecoin': 'Dogecoin',
+            'cardano': 'Cardano', 'avalanche-2': 'Avalanche', 'shiba-inu': 'Shiba Inu', 'bitcoin-cash': 'Bitcoin Cash',
+            'polkadot': 'Polkadot', 'tron': 'Tron', 'uniswap': 'Uniswap', 'litecoin': 'Litecoin',
+            'chainlink': 'Chainlink', 'vechain': 'VeChain', 'stellar': 'Stellar', 'theta-network': 'Theta Network',
+            'okb': 'OKB', 'filecoin': 'Filecoin', 'wrapped-bitcoin': 'Wrapped Bitcoin', 'monero': 'Monero',
+            'terra-luna': 'Terra Luna', 'neo': 'Neo', 'bitcoin-sv': 'Bitcoin SV', 'eos': 'EOS',
+            'ethereum-classic': 'Ethereum Classic', 'aave': 'AAVE', 'iota': 'IOTA', 'huobi-token': 'Huobi Token',
+            'maker': 'Maker', 'ftx-token': 'FTX Token', 'cosmos': 'Cosmos', 'bittorrent': 'BitTorrent',
+            'pancakeswap-token': 'PancakeSwap', 'tezos': 'Tezos', 'waves': 'Waves', 'kusama': 'Kusama',
+            'compound-governance-token': 'Compound', 'dai': 'DAI', 'dash': 'Dash', 'nem': 'NEM',
+            'zcash': 'Zcash', 'chiliz': 'Chiliz', 'qtum': 'Qtum', 'lisk': 'Lisk', 'bitcoin-gold': 'Bitcoin Gold',
+            'siacoin': 'Siacoin'
+        };
+
+        // 葡萄牙语名称映射
+        const portugueseNames = {
+            'bitcoin': 'Bitcoin', 'ethereum': 'Ethereum', 'tether': 'Tether', 'binancecoin': 'Binance Coin',
+            'solana': 'Solana', 'usd-coin': 'USD Coin', 'ripple': 'Ripple', 'dogecoin': 'Dogecoin',
+            'cardano': 'Cardano', 'avalanche-2': 'Avalanche', 'shiba-inu': 'Shiba Inu', 'bitcoin-cash': 'Bitcoin Cash',
+            'polkadot': 'Polkadot', 'tron': 'Tron', 'uniswap': 'Uniswap', 'litecoin': 'Litecoin',
+            'chainlink': 'Chainlink', 'vechain': 'VeChain', 'stellar': 'Stellar', 'theta-network': 'Theta Network',
+            'okb': 'OKB', 'filecoin': 'Filecoin', 'wrapped-bitcoin': 'Bitcoin Envolvido', 'monero': 'Monero',
+            'terra-luna': 'Terra Luna', 'neo': 'Neo', 'bitcoin-sv': 'Bitcoin SV', 'eos': 'EOS',
+            'ethereum-classic': 'Ethereum Classic', 'aave': 'AAVE', 'iota': 'IOTA', 'huobi-token': 'Huobi Token',
+            'maker': 'Maker', 'ftx-token': 'FTX Token', 'cosmos': 'Cosmos', 'bittorrent': 'BitTorrent',
+            'pancakeswap-token': 'PancakeSwap', 'tezos': 'Tezos', 'waves': 'Waves', 'kusama': 'Kusama',
+            'compound-governance-token': 'Compound', 'dai': 'DAI', 'dash': 'Dash', 'nem': 'NEM',
+            'zcash': 'Zcash', 'chiliz': 'Chiliz', 'qtum': 'Qtum', 'lisk': 'Lisk', 'bitcoin-gold': 'Bitcoin Gold',
+            'siacoin': 'Siacoin'
+        };
+
+        // 孟加拉语名称映射
+        const bengaliNames = {
+            'bitcoin': 'বিটকয়েন', 'ethereum': 'ইথেরিয়াম', 'tether': 'টেদার', 'binancecoin': 'বিনান্স কয়েন',
+            'solana': 'সোলানা', 'usd-coin': 'USD কয়েন', 'ripple': 'রিপল', 'dogecoin': 'ডোজকয়েন',
+            'cardano': 'কার্ডানো', 'avalanche-2': 'অ্যাভালাঞ্চ', 'shiba-inu': 'শিবা ইনু', 'bitcoin-cash': 'বিটকয়েন ক্যাশ',
+            'polkadot': 'পোলকাডট', 'tron': 'ট্রন', 'uniswap': 'ইউনিসোয়াপ', 'litecoin': 'লাইটকয়েন',
+            'chainlink': 'চেইনলিংক', 'vechain': 'ভিচেইন', 'stellar': 'স্টেলার', 'theta-network': 'থিটা নেটওয়ার্ক',
+            'okb': 'ওকেবি', 'filecoin': 'ফাইলকয়েন', 'wrapped-bitcoin': 'ওয়্যার্পড বিটকয়েন', 'monero': 'মনেরো',
+            'terra-luna': 'টেরা লুনা', 'neo': 'নিও', 'bitcoin-sv': 'বিটকয়েন এসভি', 'eos': 'ইওএস',
+            'ethereum-classic': 'ইথেরিয়াম ক্লাসিক', 'aave': 'এভি', 'iota': 'আইওটা', 'huobi-token': 'হুওবি টোকেন',
+            'maker': 'মেকার', 'ftx-token': 'এফটিএক্স টোকেন', 'cosmos': 'কসমস', 'bittorrent': 'বিটটরেন্ট',
+            'pancakeswap-token': 'প্যানকেকসোয়াপ', 'tezos': 'টেজোস', 'waves': 'ওয়েভস', 'kusama': 'কুসামা',
+            'compound-governance-token': 'কম্পাউন্ড', 'dai': 'ডাই', 'dash': 'ড্যাশ', 'nem': 'নেম',
+            'zcash': 'জেক্যাশ', 'chiliz': 'চিলিজ', 'qtum': 'কিউটাম', 'lisk': 'লিস্ক', 'bitcoin-gold': 'বিটকয়েন গোল্ড',
+            'siacoin': 'সিয়াকয়েন'
+        };
+
+        // 德语名称映射
+        const germanNames = {
+            'bitcoin': 'Bitcoin', 'ethereum': 'Ethereum', 'tether': 'Tether', 'binancecoin': 'Binance Coin',
+            'solana': 'Solana', 'usd-coin': 'USD Coin', 'ripple': 'Ripple', 'dogecoin': 'Dogecoin',
+            'cardano': 'Cardano', 'avalanche-2': 'Avalanche', 'shiba-inu': 'Shiba Inu', 'bitcoin-cash': 'Bitcoin Cash',
+            'polkadot': 'Polkadot', 'tron': 'Tron', 'uniswap': 'Uniswap', 'litecoin': 'Litecoin',
+            'chainlink': 'Chainlink', 'vechain': 'VeChain', 'stellar': 'Stellar', 'theta-network': 'Theta Network',
+            'okb': 'OKB', 'filecoin': 'Filecoin', 'wrapped-bitcoin': 'Wrapped Bitcoin', 'monero': 'Monero',
+            'terra-luna': 'Terra Luna', 'neo': 'Neo', 'bitcoin-sv': 'Bitcoin SV', 'eos': 'EOS',
+            'ethereum-classic': 'Ethereum Classic', 'aave': 'AAVE', 'iota': 'IOTA', 'huobi-token': 'Huobi Token',
+            'maker': 'Maker', 'ftx-token': 'FTX Token', 'cosmos': 'Cosmos', 'bittorrent': 'BitTorrent',
+            'pancakeswap-token': 'PancakeSwap', 'tezos': 'Tezos', 'waves': 'Waves', 'kusama': 'Kusama',
+            'compound-governance-token': 'Compound', 'dai': 'DAI', 'dash': 'Dash', 'nem': 'NEM',
+            'zcash': 'Zcash', 'chiliz': 'Chiliz', 'qtum': 'Qtum', 'lisk': 'Lisk', 'bitcoin-gold': 'Bitcoin Gold',
+            'siacoin': 'Siacoin'
+        };
+
+        // 初始化
+        function init() {
+            loadLanguage();
+            updateUI();
+            refreshData();
+            setupAutoRefresh();
+        }
+
+        // 加载语言设置
+        function loadLanguage() {
+            const saved = localStorage.getItem('eaco_lang');
+            if (saved && translations[saved]) {
+                currentLang = saved;
+            }
+            document.getElementById('languageSelect').value = currentLang;
+            // 设置 html 的 lang 和 dir 属性
+            document.documentElement.lang = currentLang;
+            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+        }
+
+        // 保存语言设置
+        function saveLanguage(lang) {
+            localStorage.setItem('eaco_lang', lang);
+        }
+
+        // 切换语言
+        function changeLanguage() {
+            const select = document.getElementById('languageSelect');
+            currentLang = select.value;
+            saveLanguage(currentLang);
+            updateUI();
+        }
+
+        // 更新UI文本
+        function updateUI() {
+            const t = translations[currentLang];
+            document.getElementById('pageTitle').textContent = t.pageTitle;
+            document.getElementById('tagline').textContent = translations[currentLang].tagline;
+            document.getElementById('symbolHeader').textContent = t.symbolHeader;
+            document.getElementById('nameHeader').textContent = t.nameHeader;
+            document.getElementById('priceHeader').textContent = t.priceHeader;
+            document.getElementById('volumeHeader').textContent = t.volumeHeader;
+            document.getElementById('eacoHeader').textContent = t.eacoHeader;
+            document.getElementById('chartTitle').textContent = t.chartTitle;
+            document.getElementById('refreshText').textContent = t.refreshText;
+            document.getElementById('disclaimer').textContent = t.disclaimer;
+            document.getElementById('lastUpdated').innerHTML = `${t.lastUpdated}: <span id="updateTime">${document.getElementById('updateTime')?.textContent || '...'}</span>`;
+            document.getElementById('contractText').textContent = t.contract + ': DqfoyZH96RnvZusSp3Cdncjpyp3C74ZmJzGhjmHnDHRH';
+            document.getElementById('meteoraLink').textContent = t.meteora;
+            document.getElementById('orcaLink').textContent = t.orca;
+            document.getElementById('raydiumLink').textContent = t.raydium;
+            document.getElementById('linktreeLink').textContent = t.linktree;
+            document.getElementById('solscanLink').textContent = t.solscan;
+            document.getElementById('twitterLink').textContent = t.twitter;
+            document.getElementById('tgEngLink').textContent = t.tgEng;
+            document.getElementById('tgZhLink').textContent = t.tgZh;
+            document.getElementById('tgEsLink').textContent = t.tgEs;
+            document.getElementById('footerLine1').textContent = t.footer1;
+
+            // RTL 支持
+            document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+        }
+
+        // 获取币种名称
+        function getCoinName(id) {
+            if (currentLang === 'zh' && chineseNames[id]) return chineseNames[id];
+            if (currentLang === 'es' && spanishNames[id]) return spanishNames[id];
+            if (currentLang === 'pt' && portugueseNames[id]) return portugueseNames[id];
+            if (currentLang === 'bn' && bengaliNames[id]) return bengaliNames[id];
+            if (currentLang === 'de' && germanNames[id]) return germanNames[id];
+            // 默认返回ID（或英文名）
+            return id.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        }
+
+        // 格式化数字
+        function formatNumber(num) {
+            if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+            if (num === 0) return '0';
+            if (num < 0.000001) return num.toExponential(2);
+            return num.toLocaleString(undefined, { maximumFractionDigits: 6, useGrouping: true });
+        }
+
+        // 刷新数据
+        async function refreshData() {
+            try {
+                const button = document.querySelector('.refresh-btn');
+                button.disabled = true;
+                button.textContent = translations[currentLang].refreshText + '...';
+
+                // 获取价格和交易量
+                const ids = top50Coins.join(',');
+                const vsCurrencies = 'usd';
+                const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=${vsCurrencies}&include_24hr_vol=true&include_24hr_change=true`;
+
+                const response = await fetch(url, {
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
+                const data = await response.json();
+
+                const tableBody = document.getElementById('currencyTableBody');
+                tableBody.innerHTML = '';
+
+                const chartData = {
+                    labels: [],
+                    datasets: [{
+                        label: translations[currentLang].eacoHeader,
+                        data: [],
+                        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        borderColor: 'rgba(75, 192, 192, 1)',
+                        borderWidth: 2,
+                        tension: 0.4
+                    }]
+                };
+
+                const now = new Date();
+                const timestamp = now.toISOString();
+
+                for (let i = 0; i < top50Coins.length; i++) {
+                    const id = top50Coins[i];
+                    if (!data[id] || !data[id].usd) continue;
+
+                    const usdPrice = data[id].usd;
+                    const volume = data[id][`usd_24h_vol`] || 0;
+                    const eacoAmount = usdPrice / EACO_USD_RATE;
+
+                    // 存储历史数据
+                    if (!historyData[id]) historyData[id] = [];
+                    historyData[id].push({ timestamp, price: usdPrice, eaco: eacoAmount });
+                    // 保留最近100条记录
+                    if (historyData[id].length > 100) historyData[id].shift();
+
+                    // 添加到表格
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${i+1}</td>
+                        <td><strong>${id.split('-').map(s => s.charAt(0).toUpperCase()).join('')}</strong></td>
+                        <td>${getCoinName(id)}</td>
+                        <td>$${formatNumber(usdPrice)}</td>
+                        <td>$${formatNumber(volume)}</td>
+                        <td class="eaco-amount">${formatNumber(eacoAmount)} EACO</td>
+                    `;
+                    tableBody.appendChild(row);
+
+                    // 添加到图表数据 (仅前10)
+                    if (i < 10) {
+                        chartData.labels.push(getCoinName(id));
+                        chartData.datasets[0].data.push(eacoAmount);
+                    }
+                }
+
+                // 更新图表
+                updateChart(chartData);
+
+                // 更新最后更新时间
+                document.getElementById('updateTime').textContent = now.toLocaleString(currentLang);
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                alert(`${translations[currentLang].disclaimer}\n${error.message}`);
+            } finally {
+                const button = document.querySelector('.refresh-btn');
+                button.disabled = false;
+                button.textContent = translations[currentLang].refreshText;
+            }
+        }
+
+        // 更新图表
+        function updateChart(chartData) {
+            const ctx = document.getElementById('rateChart').getContext('2d');
+            if (rateChart) rateChart.destroy();
+            rateChart = new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: true },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `≈ ${formatNumber(context.parsed.y)} EACO`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: translations[currentLang].eacoHeader
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return formatNumber(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 设置自动刷新 (每10分钟)
+        function setupAutoRefresh() {
+            setInterval(refreshData, 10 * 60 * 1000); // 10分钟
+        }
+
+        // 事件监听器
+        document.getElementById('languageSelect').addEventListener('change', changeLanguage);
+
+        // 页面加载完成
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
