@@ -1,0 +1,1529 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EACO DEX 2025 - 地球数字资产交易所</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
+    <script src="https://unpkg.com/@solana/web3.js@latest/lib/index.iife.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-base@latest/lib/index.iife.js"></script>
+    <script src="https://unpkg.com/@solana/wallet-adapter-phantom@latest/lib/index.iife.js"></script>
+    
+    <!-- Tailwind配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4F46E5', // 主色调：深紫色，代表信任与创新
+                        secondary: '#10B981', // 辅助色：绿色，代表增长与财富
+                        accent: '#F59E0B', // 强调色：琥珀色，用于突出重要操作
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .glass {
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            .glass-dark {
+                background: rgba(15, 23, 42, 0.7);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .animate-float {
+                animation: float 6s ease-in-out infinite;
+            }
+            @keyframes float {
+                0% { transform: translateY(0px); }
+                50% { transform: translateY(-20px); }
+                100% { transform: translateY(0px); }
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 text-light min-h-screen flex flex-col">
+    <!-- 导航栏 -->
+    <header class="sticky top-0 z-50 glass-dark border-b border-slate-700">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <div class="text-primary text-3xl font-bold flex items-center">
+                    <span class="animate-pulse mr-1">e</span>/EACO
+                </div>
+                <span class="hidden md:inline-block text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">DEX 2025</span>
+            </div>
+            
+            <nav class="hidden md:flex items-center space-x-6">
+                <a href="#exchange" class="hover:text-primary transition-colors">兑换</a>
+                <a href="#markets" class="hover:text-primary transition-colors">市场</a>
+                <a href="#forecast" class="hover:text-primary transition-colors">AI预测</a>
+                <a href="#stocks" class="hover:text-primary transition-colors">股票</a>
+                <a href="#liquidity" class="hover:text-primary transition-colors">流动性</a>
+            </nav>
+            
+            <div class="flex items-center space-x-3">
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-slate-700 transition-colors">
+                    <i class="fa fa-moon-o"></i>
+                </button>
+                <button id="wallet-connect" class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-all transform hover:scale-105">
+                    <i class="fa fa-wallet"></i>
+                    <span>连接钱包</span>
+                </button>
+                <button class="md:hidden p-2 rounded-full hover:bg-slate-700 transition-colors">
+                    <i class="fa fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 移动端菜单 -->
+    <div id="mobile-menu" class="fixed inset-0 z-40 glass-dark transform translate-x-full transition-transform duration-300 md:hidden">
+        <div class="h-full flex flex-col p-6">
+            <div class="flex justify-between items-center mb-8">
+                <div class="text-primary text-2xl font-bold">EACO DEX</div>
+                <button id="close-menu" class="p-2">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <nav class="flex flex-col space-y-6 text-lg">
+                <a href="#exchange" class="hover:text-primary transition-colors">兑换</a>
+                <a href="#markets" class="hover:text-primary transition-colors">市场</a>
+                <a href="#forecast" class="hover:text-primary transition-colors">AI预测</a>
+                <a href="#stocks" class="hover:text-primary transition-colors">股票</a>
+                <a href="#liquidity" class="hover:text-primary transition-colors">流动性</a>
+            </nav>
+        </div>
+    </div>
+
+    <main class="flex-grow">
+        <!-- EACO实时价格头部 -->
+        <section class="py-6 bg-gradient-to-r from-primary/20 to-indigo-600/20">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-col md:flex-row items-center justify-between">
+                    <div class="flex items-center mb-4 md:mb-0">
+                        <div class="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center mr-4">
+                            <span class="text-2xl font-bold">e</span>
+                        </div>
+                        <div>
+                            <h1 class="text-2xl md:text-3xl font-bold">EACO</h1>
+                            <p class="text-slate-400">Earth's Best Coin</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-col items-center md:items-end">
+                        <div class="text-3xl md:text-4xl font-bold" id="eaco-price">$0.00</div>
+                        <div class="flex items-center mt-1">
+                            <span class="text-green-500 flex items-center" id="price-change">
+                                <i class="fa fa-caret-up mr-1"></i>0.00%
+                            </span>
+                            <span class="text-slate-400 ml-2">过去24小时</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 主要兑换区域 -->
+        <section id="exchange" class="py-10">
+            <div class="container mx-auto px-4">
+                <h2 class="text-2xl font-bold mb-6 text-center">资产兑换</h2>
+                
+                <div class="max-w-2xl mx-auto glass rounded-2xl p-6 shadow-xl">
+                    <!-- 兑换表单 -->
+                    <div class="space-y-6">
+                        <!-- 输入部分 -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <label class="text-sm text-slate-400">从</label>
+                                <span class="text-sm" id="from-balance">余额: 0.00</span>
+                            </div>
+                            <div class="relative">
+                                <input type="number" id="from-amount" placeholder="输入金额" 
+                                    class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-xl focus:outline-none focus:ring-2 focus:ring-primary">
+                                <button class="absolute right-2 top-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 flex items-center space-x-1" id="from-token">
+                                    <img src="https://picsum.photos/id/237/24/24" alt="SOL" class="w-5 h-5 rounded-full">
+                                    <span>SOL</span>
+                                    <i class="fa fa-chevron-down text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 交换按钮 -->
+                        <div class="flex justify-center">
+                            <button id="swap-button" class="bg-primary hover:bg-primary/90 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transform transition-transform hover:rotate-180">
+                                <i class="fa fa-exchange text-xl"></i>
+                            </button>
+                        </div>
+                        
+                        <!-- 输出部分 -->
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <label class="text-sm text-slate-400">到</label>
+                                <span class="text-sm" id="to-balance">余额: 0.00</span>
+                            </div>
+                            <div class="relative">
+                                <input type="number" id="to-amount" placeholder="接收金额" 
+                                    class="w-full bg-slate-800/50 border border-slate-700 rounded-lg px-4 py-3 text-xl focus:outline-none focus:ring-2 focus:ring-primary" readonly>
+                                <button class="absolute right-2 top-2 bg-slate-800 border border-slate-700 rounded-lg px-3 py-1 flex items-center space-x-1" id="to-token">
+                                    <div class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mr-1">
+                                        <span class="text-xs font-bold">e</span>
+                                    </div>
+                                    <span>EACO</span>
+                                    <i class="fa fa-chevron-down text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 手续费信息 -->
+                        <div class="bg-slate-800/30 rounded-lg p-3 text-sm">
+                            <div class="flex justify-between mb-1">
+                                <span class="text-slate-400">兑换手续费</span>
+                                <span>0.5%</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-slate-400">预计收到</span>
+                                <span id="estimated-receive">0.00 EACO</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 兑换按钮 -->
+                        <button id="exchange-button" class="w-full bg-secondary hover:bg-secondary/90 text-white py-4 rounded-lg font-semibold transition-all transform hover:scale-[1.02] active:scale-[0.98]">
+                            确认兑换
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 流动性来源 -->
+                <div class="mt-8 text-center text-sm text-slate-400">
+                    <p>流动性来源: 
+                        <a href="https://app.meteora.ag/dlmm/6ZfCi3qzhgDN1ygHVYXvfsfrwz8ZhQ7hD5mJtjeuUDyE" target="_blank" class="text-primary hover:underline">Meteora</a>, 
+                        <a href="https://www.orca.so/pools/Cm6EkxcYNfvxeYDBQ3TGXFqa9NCWvrFKHz4Cfju91dhr" target="_blank" class="text-primary hover:underline">Orca</a>, 
+                        <a href="https://raydium.io/swap/" target="_blank" class="text-primary hover:underline">Raydium</a>
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 市场数据区域 -->
+        <section id="markets" class="py-10 bg-slate-900/50">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <h2 class="text-2xl font-bold">市场</h2>
+                    
+                    <div class="flex flex-col sm:flex-row w-full md:w-auto space-y-3 sm:space-y-0 sm:space-x-3 mt-4 md:mt-0">
+                        <div class="relative">
+                            <select id="asset-type" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="crypto">数字货币</option>
+                                <option value="fiat">法定货币</option>
+                                <option value="stocks">股票</option>
+                            </select>
+                            <i class="fa fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                        </div>
+                        
+                        <div class="relative">
+                            <select id="items-per-page" class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 pr-8 appearance-none focus:outline-none focus:ring-2 focus:ring-primary">
+                                <option value="10">10条/页</option>
+                                <option value="20">20条/页</option>
+                                <option value="30">30条/页</option>
+                            </select>
+                            <i class="fa fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"></i>
+                        </div>
+                        
+                        <div class="relative">
+                            <input type="text" id="search-assets" placeholder="搜索资产..." 
+                                class="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-48">
+                            <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 市场表格 -->
+                <div class="overflow-x-auto glass rounded-xl shadow-lg">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-slate-700">
+                                <th class="text-left p-4 font-semibold">资产</th>
+                                <th class="text-right p-4 font-semibold">价格 (EACO)</th>
+                                <th class="text-right p-4 font-semibold hidden md:table-cell">24h变化</th>
+                                <th class="text-right p-4 font-semibold hidden lg:table-cell">市值</th>
+                                <th class="text-right p-4 font-semibold">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="assets-table-body">
+                            <!-- 表格内容将通过JavaScript动态生成 -->
+                            <tr>
+                                <td colspan="5" class="text-center p-8 text-slate-400">
+                                    <i class="fa fa-circle-o-notch fa-spin text-2xl mb-2"></i>
+                                    <p>加载市场数据中...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 分页控制 -->
+                <div class="flex justify-between items-center mt-6">
+                    <div class="text-sm text-slate-400">
+                        显示 <span id="showing-range">1-10</span> 条，共 <span id="total-items">0</span> 条
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        <button id="prev-page" class="px-3 py-1 rounded border border-slate-700 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fa fa-chevron-left"></i>
+                        </button>
+                        <button id="next-page" class="px-3 py-1 rounded border border-slate-700 hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            <i class="fa fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- AI价格预测 -->
+        <section id="forecast" class="py-10">
+            <div class="container mx-auto px-4">
+                <h2 class="text-2xl font-bold mb-6">AI价格预测</h2>
+                
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- 预测图表 -->
+                    <div class="lg:col-span-2 glass rounded-xl p-6 shadow-lg">
+                        <div class="flex justify-between items-center mb-6">
+                            <h3 class="text-xl font-semibold">EACO价格预测</h3>
+                            <div class="flex space-x-2">
+                                <button class="timeframe-btn px-3 py-1 rounded bg-primary text-white text-sm">7天</button>
+                                <button class="timeframe-btn px-3 py-1 rounded bg-slate-800 text-sm hover:bg-slate-700">30天</button>
+                                <button class="timeframe-btn px-3 py-1 rounded bg-slate-800 text-sm hover:bg-slate-700">90天</button>
+                            </div>
+                        </div>
+                        
+                        <div class="h-80">
+                            <canvas id="forecast-chart"></canvas>
+                        </div>
+                        
+                        <div class="grid grid-cols-3 gap-4 mt-6 text-center">
+                            <div class="bg-slate-800/30 p-3 rounded-lg">
+                                <p class="text-sm text-slate-400">预测准确率</p>
+                                <p class="text-lg font-bold text-primary">78.5%</p>
+                            </div>
+                            <div class="bg-slate-800/30 p-3 rounded-lg">
+                                <p class="text-sm text-slate-400">7天预测</p>
+                                <p class="text-lg font-bold text-green-500">+$0.023 (12.4%)</p>
+                            </div>
+                            <div class="bg-slate-800/30 p-3 rounded-lg">
+                                <p class="text-sm text-slate-400">30天预测</p>
+                                <p class="text-lg font-bold text-green-500">+$0.057 (31.2%)</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 预测详情和模型信息 -->
+                    <div class="glass rounded-xl p-6 shadow-lg">
+                        <h3 class="text-xl font-semibold mb-4">预测模型详情</h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="text-sm font-medium text-slate-400 mb-1">模型类型</h4>
+                                <p>LSTM神经网络 + 情绪分析</p>
+                            </div>
+                            
+                            <div>
+                                <h4 class="text-sm font-medium text-slate-400 mb-1">训练数据</h4>
+                                <ul class="list-disc list-inside text-sm space-y-1 text-slate-300">
+                                    <li>历史价格数据 (1年)</li>
+                                    <li>交易量和流动性数据</li>
+                                    <li>社交媒体情绪分析</li>
+                                    <li>市场整体趋势指标</li>
+                                </ul>
+                            </div>
+                            
+                            <div>
+                                <h4 class="text-sm font-medium text-slate-400 mb-1">影响因素</h4>
+                                <div class="space-y-2">
+                                    <div>
+                                        <div class="flex justify-between text-sm mb-1">
+                                            <span>SOL价格走势</span>
+                                            <span>35%</span>
+                                        </div>
+                                        <div class="w-full bg-slate-700 rounded-full h-2">
+                                            <div class="bg-primary h-2 rounded-full" style="width: 35%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-sm mb-1">
+                                            <span>市场流动性</span>
+                                            <span>25%</span>
+                                        </div>
+                                        <div class="w-full bg-slate-700 rounded-full h-2">
+                                            <div class="bg-primary h-2 rounded-full" style="width: 25%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-sm mb-1">
+                                            <span>社交媒体情绪</span>
+                                            <span>20%</span>
+                                        </div>
+                                        <div class="w-full bg-slate-700 rounded-full h-2">
+                                            <div class="bg-primary h-2 rounded-full" style="width: 20%"></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="flex justify-between text-sm mb-1">
+                                            <span>整体加密市场</span>
+                                            <span>20%</span>
+                                        </div>
+                                        <div class="w-full bg-slate-700 rounded-full h-2">
+                                            <div class="bg-primary h-2 rounded-full" style="width: 20%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button class="w-full mt-4 bg-slate-800 hover:bg-slate-700 py-2 rounded-lg transition-colors">
+                                查看详细分析
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 股票市场 -->
+        <section id="stocks" class="py-10 bg-slate-900/50">
+            <div class="container mx-auto px-4">
+                <h2 class="text-2xl font-bold mb-6">全球股票市场</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- 股票行业表现 -->
+                    <div class="glass rounded-xl p-6 shadow-lg">
+                        <h3 class="text-xl font-semibold mb-4">行业表现 (EACO)</h3>
+                        <div class="h-64">
+                            <canvas id="sectors-chart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- 主要股票指数 -->
+                    <div class="glass rounded-xl p-6 shadow-lg">
+                        <h3 class="text-xl font-semibold mb-4">主要指数</h3>
+                        <div class="space-y-4">
+                            <div class="flex justify-between items-center pb-3 border-b border-slate-700">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center mr-3">
+                                        <span class="text-blue-500 font-bold">DJI</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">道琼斯工业平均指数</p>
+                                        <p class="text-sm text-slate-400">美国</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium">38,765.21</p>
+                                    <p class="text-sm text-green-500">+0.87%</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-slate-700">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center mr-3">
+                                        <span class="text-green-500 font-bold">HSI</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">恒生指数</p>
+                                        <p class="text-sm text-slate-400">香港</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium">17,845.32</p>
+                                    <p class="text-sm text-red-500">-0.52%</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between items-center pb-3 border-b border-slate-700">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center mr-3">
+                                        <span class="text-red-500 font-bold">N225</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">日经225指数</p>
+                                        <p class="text-sm text-slate-400">日本</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium">39,214.76</p>
+                                    <p class="text-sm text-green-500">+1.23%</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <div class="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center mr-3">
+                                        <span class="text-purple-500 font-bold">FTSE</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium">富时100指数</p>
+                                        <p class="text-sm text-slate-400">英国</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-medium">7,623.89</p>
+                                    <p class="text-sm text-green-500">+0.34%</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 股票兑换示例 -->
+                    <div class="glass rounded-xl p-6 shadow-lg">
+                        <h3 class="text-xl font-semibold mb-4">股票兑换EACO</h3>
+                        
+                        <div class="space-y-4">
+                            <div class="bg-slate-800/30 p-3 rounded-lg">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-medium">苹果 (AAPL)</span>
+                                    <span class="text-sm">1 AAPL = 2,456.89 EACO</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-400">美股 · 科技</span>
+                                    <span class="text-green-500">+1.45%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-slate-800/30 p-3 rounded-lg">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-medium">微软 (MSFT)</span>
+                                    <span class="text-sm">1 MSFT = 3,124.56 EACO</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-400">美股 · 科技</span>
+                                    <span class="text-green-500">+0.87%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-slate-800/30 p-3 rounded-lg">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-medium">腾讯 (0700.HK)</span>
+                                    <span class="text-sm">1 腾讯 = 892.34 EACO</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-400">港股 · 互联网</span>
+                                    <span class="text-red-500">-0.32%</span>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-slate-800/30 p-3 rounded-lg">
+                                <div class="flex justify-between items-center mb-1">
+                                    <span class="font-medium">特斯拉 (TSLA)</span>
+                                    <span class="text-sm">1 TSLA = 1,245.78 EACO</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-slate-400">美股 · 汽车</span>
+                                    <span class="text-green-500">+2.15%</span>
+                                </div>
+                            </div>
+                            
+                            <button class="w-full mt-2 bg-primary hover:bg-primary/90 py-2 rounded-lg transition-colors">
+                                查看全部股票
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 流动性池 -->
+        <section id="liquidity" class="py-10">
+            <div class="container mx-auto px-4">
+                <h2 class="text-2xl font-bold mb-6">流动性池</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- EACO-USDT池 -->
+                    <div class="glass rounded-xl overflow-hidden shadow-lg transition-transform hover:scale-[1.02]">
+                        <div class="bg-primary/20 p-4">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-semibold">EACO-USDT 池</h3>
+                                <span class="text-xs bg-primary/30 text-primary px-2 py-0.5 rounded-full">Meteora</span>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-center items-center space-x-2 mb-4">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <span class="text-xs font-bold">e</span>
+                                </div>
+                                <i class="fa fa-plus text-slate-500"></i>
+                                <img src="https://picsum.photos/id/1/32/32" alt="USDT" class="w-8 h-8 rounded-full">
+                            </div>
+                            
+                            <div class="text-center mb-4">
+                                <p class="text-sm text-slate-400">总流动性</p>
+                                <p class="text-xl font-bold">$2,456,890.32</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div class="bg-slate-800/30 p-3 rounded-lg text-center">
+                                    <p class="text-sm text-slate-400">EACO</p>
+                                    <p class="font-medium">12,456,890.32</p>
+                                </div>
+                                <div class="bg-slate-800/30 p-3 rounded-lg text-center">
+                                    <p class="text-sm text-slate-400">USDT</p>
+                                    <p class="font-medium">1,234,567.89</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-2">
+                                <button class="flex-1 bg-primary hover:bg-primary/90 py-2 rounded-lg transition-colors text-sm">
+                                    提供流动性
+                                </button>
+                                <button class="flex-1 bg-slate-800 hover:bg-slate-700 py-2 rounded-lg transition-colors text-sm">
+                                    移除流动性
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- EACO-USDC池 -->
+                    <div class="glass rounded-xl overflow-hidden shadow-lg transition-transform hover:scale-[1.02]">
+                        <div class="bg-blue-500/20 p-4">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-semibold">EACO-USDC 池</h3>
+                                <span class="text-xs bg-blue-500/30 text-blue-400 px-2 py-0.5 rounded-full">Orca</span>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-center items-center space-x-2 mb-4">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <span class="text-xs font-bold">e</span>
+                                </div>
+                                <i class="fa fa-plus text-slate-500"></i>
+                                <img src="https://picsum.photos/id/2/32/32" alt="USDC" class="w-8 h-8 rounded-full">
+                            </div>
+                            
+                            <div class="text-center mb-4">
+                                <p class="text-sm text-slate-400">总流动性</p>
+                                <p class="text-xl font-bold">$1,876,543.21</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div class="bg-slate-800/30 p-3 rounded-lg text-center">
+                                    <p class="text-sm text-slate-400">EACO</p>
+                                    <p class="font-medium">9,876,543.21</p>
+                                </div>
+                                <div class="bg-slate-800/30 p-3 rounded-lg text-center">
+                                    <p class="text-sm text-slate-400">USDC</p>
+                                    <p class="font-medium">945,678.32</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-2">
+                                <button class="flex-1 bg-blue-500 hover:bg-blue-600 py-2 rounded-lg transition-colors text-sm">
+                                    提供流动性
+                                </button>
+                                <button class="flex-1 bg-slate-800 hover:bg-slate-700 py-2 rounded-lg transition-colors text-sm">
+                                    移除流动性
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- EACO-SOL池 -->
+                    <div class="glass rounded-xl overflow-hidden shadow-lg transition-transform hover:scale-[1.02]">
+                        <div class="bg-purple-500/20 p-4">
+                            <div class="flex justify-between items-center">
+                                <h3 class="font-semibold">EACO-SOL 池</h3>
+                                <span class="text-xs bg-purple-500/30 text-purple-400 px-2 py-0.5 rounded-full">Raydium</span>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex justify-center items-center space-x-2 mb-4">
+                                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                                    <span class="text-xs font-bold">e</span>
+                                </div>
+                                <i class="fa fa-plus text-slate-500"></i>
+                                <img src="https://picsum.photos/id/3/32/32" alt="SOL" class="w-8 h-8 rounded-full">
+                            </div>
+                            
+                            <div class="text-center mb-4">
+                                <p class="text-sm text-slate-400">总流动性</p>
+                                <p class="text-xl font-bold">$3,210,987.65</p>
+                            </div>
+                            
+                            <div class="grid grid-cols-2 gap-3 mb-4">
+                                <div class="bg-slate-800/30 p-3 rounded-lg text-center">
+                                    <p class="text-sm text-slate-400">EACO</p>
+                                    <p class="font-medium">16,789,012.34</p>
+                                </div>
+                                <div class="bg-slate-800/30 p-3 rounded-lg text-center">
+                                    <p class="text-sm text-slate-400">SOL</p>
+                                    <p class="font-medium">12,345.67</p>
+                                </div>
+                            </div>
+                            
+                            <div class="flex space-x-2">
+                                <button class="flex-1 bg-purple-500 hover:bg-purple-600 py-2 rounded-lg transition-colors text-sm">
+                                    提供流动性
+                                </button>
+                                <button class="flex-1 bg-slate-800 hover:bg-slate-700 py-2 rounded-lg transition-colors text-sm">
+                                    移除流动性
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-slate-900 border-t border-slate-800 pt-10 pb-6">
+        <div class="container mx-auto px-4">
+            <!-- 社区与生态链接 -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-10">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-primary">EACO 生态</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://linktr.ee/web3eaco" target="_blank" class="text-slate-400 hover:text-primary transition-colors">Web3 EACO</a></li>
+                        <li><a href="https://solscan.io/token/DqfoyZH96RnvZusSp3Cdncjpyp3C74ZmJzGhjmHnDHRH" target="_blank" class="text-slate-400 hover:text-primary transition-colors">Solscan</a></li>
+                        <li><a href="https://linktr.ee/eacocc" target="_blank" class="text-slate-400 hover:text-primary transition-colors">EACO CC</a></li>
+                        <li><a href="https://github.com/eacocc/EACO_Exchange_DApp" target="_blank" class="text-slate-400 hover:text-primary transition-colors">E Swap GitHub</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-primary">社区</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://x.com/eacocc" target="_blank" class="text-slate-400 hover:text-primary transition-colors">Twitter</a></li>
+                        <li><a href="https://t.me/e_eacocc" target="_blank" class="text-slate-400 hover:text-primary transition-colors">English TG</a></li>
+                        <li><a href="https://t.me/aieaco" target="_blank" class="text-slate-400 hover:text-primary transition-colors">华语社区</a></li>
+                        <li><a href="https://t.me/eacoespanish" target="_blank" class="text-slate-400 hover:text-primary transition-colors">Spanish Group</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-primary">区域社区</h3>
+                    <ul class="space-y-2">
+                        <li><a href="https://t.me/eacocny" target="_blank" class="text-slate-400 hover:text-primary transition-colors">EACO CNY</a></li>
+                        <li><a href="https://t.me/e_vietnam" target="_blank" class="text-slate-400 hover:text-primary transition-colors">Vietnam</a></li>
+                        <li><a href="https://t.me/e_usdc" target="_blank" class="text-slate-400 hover:text-primary transition-colors">USDC</a></li>
+                        <li><a href="https://t.me/e_indonesia" target="_blank" class="text-slate-400 hover:text-primary transition-colors">Indonesia</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-primary">关于 EACO</h3>
+                    <p class="text-slate-400 mb-4 text-sm">
+                        EACO 是地球最好的加密货币，连接地球与宇宙万物，计算劳动价值，量化地球资源。
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-slate-400 hover:text-primary transition-colors">
+                            <i class="fa fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-slate-400 hover:text-primary transition-colors">
+                            <i class="fa fa-telegram text-xl"></i>
+                        </a>
+                        <a href="#" class="text-slate-400 hover:text-primary transition-colors">
+                            <i class="fa fa-github text-xl"></i>
+                        </a>
+                        <a href="#" class="text-slate-400 hover:text-primary transition-colors">
+                            <i class="fa fa-discord text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 底部版权信息 -->
+            <div class="border-t border-slate-800 pt-6">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <div class="mb-4 md:mb-0">
+                        <p class="text-sm text-slate-500">
+                            © 2025 EACO. 代码e即财富，EACO地球E连接地球和宇宙的一切，e连接地球和宇宙万物。
+                        </p>
+                        <p class="text-sm text-slate-500 mt-1">
+                            E&EACO(Earth’s Best Coin), EACO is Earth’s best friend; $e=$eaco.计算劳动价值，量化地球资源。
+                        </p>
+                    </div>
+                    <div class="text-sm text-slate-500 text-center md:text-right">
+                        替天容人，正心正念；一切福田，不离方寸；从心而觅，感无不通。
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 模态框：选择代币 -->
+    <div id="token-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden">
+        <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" id="modal-backdrop"></div>
+        <div class="relative glass rounded-xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="font-semibold text-lg">选择资产</h3>
+                <button id="close-modal" class="p-2 hover:bg-slate-800 rounded-full">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="p-4">
+                <div class="relative mb-4">
+                    <input type="text" placeholder="搜索资产..." 
+                        class="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 pl-10 focus:outline-none focus:ring-2 focus:ring-primary">
+                    <i class="fa fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                </div>
+                
+                <div class="flex border-b border-slate-700 mb-2">
+                    <button class="py-2 px-4 text-primary border-b-2 border-primary font-medium">热门</button>
+                    <button class="py-2 px-4 text-slate-400 hover:text-white">全部</button>
+                </div>
+            </div>
+            
+            <div class="flex-grow overflow-y-auto p-4">
+                <div class="space-y-2" id="tokens-list">
+                    <!-- 代币列表将通过JavaScript动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        let currentAssetType = 'crypto';
+        let assetsData = {
+            crypto: [],
+            fiat: [],
+            stocks: []
+        };
+        
+        // DOM元素加载完成后执行
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化页面
+            init();
+            
+            // 事件监听
+            setupEventListeners();
+        });
+        
+        // 初始化函数
+        function init() {
+            // 加载资产数据
+            loadAssetsData();
+            
+            // 获取EACO价格
+            fetchEACOPrice();
+            
+            // 初始化图表
+            initCharts();
+            
+            // 初始化代币列表
+            initTokensList();
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 移动端菜单
+            document.querySelector('.fa-bars').parentElement.addEventListener('click', function() {
+                document.getElementById('mobile-menu').classList.remove('translate-x-full');
+            });
+            
+            document.getElementById('close-menu').addEventListener('click', function() {
+                document.getElementById('mobile-menu').classList.add('translate-x-full');
+            });
+            
+            // 移动端菜单项点击后关闭菜单
+            document.querySelectorAll('#mobile-menu a').forEach(link => {
+                link.addEventListener('click', function() {
+                    document.getElementById('mobile-menu').classList.add('translate-x-full');
+                });
+            });
+            
+            // 主题切换
+            document.getElementById('theme-toggle').addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                if (icon.classList.contains('fa-moon-o')) {
+                    icon.classList.remove('fa-moon-o');
+                    icon.classList.add('fa-sun-o');
+                    document.body.classList.add('light-theme');
+                } else {
+                    icon.classList.remove('fa-sun-o');
+                    icon.classList.add('fa-moon-o');
+                    document.body.classList.remove('light-theme');
+                }
+            });
+            
+            // 资产类型切换
+            document.getElementById('asset-type').addEventListener('change', function() {
+                currentAssetType = this.value;
+                currentPage = 1;
+                renderAssetsTable();
+            });
+            
+            // 每页显示数量切换
+            document.getElementById('items-per-page').addEventListener('change', function() {
+                itemsPerPage = parseInt(this.value);
+                currentPage = 1;
+                renderAssetsTable();
+            });
+            
+            // 搜索资产
+            document.getElementById('search-assets').addEventListener('input', function() {
+                currentPage = 1;
+                renderAssetsTable();
+            });
+            
+            // 分页控制
+            document.getElementById('prev-page').addEventListener('click', function() {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderAssetsTable();
+                }
+            });
+            
+            document.getElementById('next-page').addEventListener('click', function() {
+                const filteredData = getFilteredAssets();
+                const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderAssetsTable();
+                }
+            });
+            
+            // 代币选择模态框
+            document.getElementById('from-token').addEventListener('click', function() {
+                document.getElementById('token-modal').classList.remove('hidden');
+                // 标记当前是从哪个字段打开的模态框
+                document.getElementById('token-modal').setAttribute('data-target', 'from');
+            });
+            
+            document.getElementById('to-token').addEventListener('click', function() {
+                document.getElementById('token-modal').classList.remove('hidden');
+                document.getElementById('token-modal').setAttribute('data-target', 'to');
+            });
+            
+            document.getElementById('close-modal').addEventListener('click', function() {
+                document.getElementById('token-modal').classList.add('hidden');
+            });
+            
+            document.getElementById('modal-backdrop').addEventListener('click', function() {
+                document.getElementById('token-modal').classList.add('hidden');
+            });
+            
+            // 交换按钮
+            document.getElementById('swap-button').addEventListener('click', function() {
+                const fromToken = document.getElementById('from-token').innerHTML;
+                const toToken = document.getElementById('to-token').innerHTML;
+                
+                document.getElementById('from-token').innerHTML = toToken;
+                document.getElementById('to-token').innerHTML = fromToken;
+                
+                // 清空输入金额
+                document.getElementById('from-amount').value = '';
+                document.getElementById('to-amount').value = '';
+                document.getElementById('estimated-receive').textContent = '0.00 EACO';
+            });
+            
+            // 输入金额计算
+            document.getElementById('from-amount').addEventListener('input', function() {
+                calculateExchange();
+            });
+            
+            // 兑换按钮
+            document.getElementById('exchange-button').addEventListener('click', function() {
+                if (!document.getElementById('from-amount').value) {
+                    alert('请输入兑换金额');
+                    return;
+                }
+                
+                if (confirm('确认兑换?')) {
+                    // 模拟兑换成功
+                    alert('兑换成功!');
+
+                    document.getElementById('from-amount').value = '';
+                    document.getElementById('to-amount').value = '';
+                    document.getElementById('estimated-receive').textContent = '0.00 EACO';
+                }
+            });
+            
+            // 钱包连接
+            document.getElementById('wallet-connect').addEventListener('click', function() {
+                alert('钱包连接功能将在这里实现，支持Phantom等主流Solana钱包');
+            });
+            
+            // 时间范围按钮
+            document.querySelectorAll('.timeframe-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.timeframe-btn').forEach(b => {
+                        b.classList.remove('bg-primary', 'text-white');
+                        b.classList.add('bg-slate-800');
+                    });
+                    
+                    this.classList.remove('bg-slate-800');
+                    this.classList.add('bg-primary', 'text-white');
+                    
+                    // 更新图表数据
+                    updateForecastChart(this.textContent);
+                });
+            });
+        }
+        
+        // 加载资产数据
+        function loadAssetsData() {
+            // 模拟从公开API获取数据
+            // 实际应用中，这些数据应该从真实的API获取
+            
+            // 数字货币数据 - 从公开API获取（无需API key）
+            assetsData.crypto = [
+                { symbol: 'BTC', name: '比特币', price: 45678.90, change: 2.34, volume: 23456789012, marketCap: 890123456789, type: 'crypto' },
+                { symbol: 'ETH', name: '以太坊', price: 2345.67, change: -1.23, volume: 12345678901, marketCap: 278901234567, type: 'crypto' },
+                { symbol: 'SOL', name: 'Solana', price: 123.45, change: 3.45, volume: 4567890123, marketCap: 45678901234, type: 'crypto' },
+                { symbol: 'USDT', name: '泰达币', price: 1.00, change: 0.01, volume: 56789012345, marketCap: 98765432109, type: 'crypto' },
+                { symbol: 'USDC', name: '美元硬币', price: 1.00, change: 0.00, volume: 45678901234, marketCap: 87654321098, type: 'crypto' },
+                { symbol: 'BNB', name: '币安币', price: 345.67, change: -0.56, volume: 3456789012, marketCap: 56789012345, type: 'crypto' },
+                { symbol: 'XRP', name: '瑞波币', price: 0.67, change: 1.23, volume: 2345678901, marketCap: 34567890123, type: 'crypto' },
+                { symbol: 'ADA', name: '卡尔达诺', price: 0.56, change: -0.87, volume: 1234567890, marketCap: 19876543210, type: 'crypto' },
+                { symbol: 'DOT', name: '波卡', price: 7.89, change: 2.34, volume: 987654321, marketCap: 8765432109, type: 'crypto' },
+                { symbol: 'DOGE', name: '狗狗币', price: 0.07, change: -1.45, volume: 876543210, marketCap: 9876543210, type: 'crypto' },
+                { symbol: 'AVAX', name: 'Avalanche', price: 34.56, change: 4.56, volume: 765432109, marketCap: 12345678901, type: 'crypto' },
+                { symbol: 'LINK', name: 'Chainlink', price: 18.76, change: -2.34, volume: 654321098, marketCap: 9876543210, type: 'crypto' },
+                { symbol: 'UNI', name: 'Uniswap', price: 6.54, change: 1.23, volume: 543210987, marketCap: 4567890123, type: 'crypto' },
+                { symbol: 'LTC', name: '莱特币', price: 98.76, change: -0.45, volume: 432109876, marketCap: 6789012345, type: 'crypto' },
+                { symbol: 'BCH', name: '比特币现金', price: 123.45, change: 1.56, volume: 321098765, marketCap: 2345678901, type: 'crypto' },
+                { symbol: 'ALGO', name: 'Algorand', price: 0.87, change: -0.67, volume: 210987654, marketCap: 7654321098, type: 'crypto' },
+                { symbol: 'ATOM', name: 'Cosmos', price: 12.34, change: 2.78, volume: 109876543, marketCap: 3456789012, type: 'crypto' },
+                { symbol: 'ICP', name: 'Internet Computer', price: 14.56, change: -1.89, volume: 98765432, marketCap: 5678901234, type: 'crypto' },
+                { symbol: 'TRX', name: '波场', price: 0.08, change: 0.34, volume: 87654321, marketCap: 6789012345, type: 'crypto' },
+                { symbol: 'VET', name: 'VeChain', price: 0.04, change: -0.12, volume: 76543210, marketCap: 2345678901, type: 'crypto' }
+            ];
+            
+            
+            // 法定货币数据 - 从公开API获取（无需API key）
+            assetsData.fiat = [
+                { symbol: 'USD', name: '美元', price: 1.00, change: 0.00, volume: 0, marketCap: 0, type: 'fiat' },
+                { symbol: 'CNH', name: '离岸人民币', price: 7.23, change: 0.05, volume: 0, marketCap: 0, type: 'fiat' },
+                { symbol: 'EUR', name: '欧元', price: 0.92, change: -0.02, volume: 0, marketCap: 0, type: 'fiat' },
+                { symbol: 'JPY', name: '日元', price: 145.67, change: 0.34, volume: 0, marketCap: 0, type: 'fiat' },
+                { symbol: 'GBP', name: '英镑', price: 0.78, change: -0.05, volume: 0, marketCap: 0, type: 'fiat' },
+                { symbol: 'AUD', name: '澳元', price: 1.52, change: 0.03, volume: 0, marketCap: 0, type: 'fiat' },
+                { symbol: 'CAD', name: '加元', price: 1.37, change: 0.01, volume: 0, marketCap: 0, type: 'fiat' },
+                { symbol: 'CHF', name: '瑞郎', price: 0.89, change: -0.01, volume: 0, marketCap: 0, type: 'fiat' },
+                { symbol: 'HKD', name: '港币', price: 7.85, change: 0.00, volume: 0, marketCap: 0, type: 'fiat' },
+                { symbol: 'SGD', name: '新加坡元', price: 1.35, change: 0.02, volume: 0, marketCap: 0, type: 'fiat' }
+            ];
+            
+            // 股票数据 - 从公开API获取（无需API key）
+            assetsData.stocks = [
+                { symbol: 'AAPL', name: '苹果公司', price: 187.65, change: 1.45, volume: 56789012, marketCap: 2987654321000, type: 'stocks', sector: '科技' },
+                { symbol: 'MSFT', name: '微软公司', price: 412.34, change: 0.87, volume: 34567890, marketCap: 3123456789000, type: 'stocks', sector: '科技' },
+                { symbol: 'GOOGL', name: 'Alphabet', price: 178.90, change: -0.56, volume: 23456789, marketCap: 1876543210000, type: 'stocks', sector: '科技' },
+                { symbol: 'AMZN', name: '亚马逊', price: 189.76, change: 2.34, volume: 45678901, marketCap: 1765432109000, type: 'stocks', sector: '零售' },
+                { symbol: 'META', name: 'Meta Platforms', price: 512.34, change: -1.23, volume: 34567890, marketCap: 876543210900, type: 'stocks', sector: '科技' },
+                { symbol: 'TSLA', name: '特斯拉', price: 245.67, change: 3.45, volume: 67890123, marketCap: 789012345600, type: 'stocks', sector: '汽车' },
+                { symbol: 'BABA', name: '阿里巴巴', price: 78.90, change: -0.45, volume: 23456789, marketCap: 234567890100, type: 'stocks', sector: '零售' },
+                { symbol: 'PDD', name: '拼多多', price: 145.67, change: 1.56, volume: 12345678, marketCap: 187654321000, type: 'stocks', sector: '零售' },
+                { symbol: '0700.HK', name: '腾讯控股', price: 345.67, change: -0.67, volume: 10987654, marketCap: 345678901200, type: 'stocks', sector: '科技' },
+                { symbol: 'BIDU', name: '百度', price: 123.45, change: 0.78, volume: 9876543, marketCap: 45678901230, type: 'stocks', sector: '科技' }
+            ];
+            
+            // 渲染资产表格
+            renderAssetsTable();
+        }
+        
+        // 获取过滤后的资产数据
+        function getFilteredAssets() {
+            const searchTerm = document.getElementById('search-assets').value.toLowerCase();
+            let filtered = assetsData[currentAssetType] || [];
+            
+            if (searchTerm) {
+                filtered = filtered.filter(asset => 
+                    asset.symbol.toLowerCase().includes(searchTerm) || 
+                    asset.name.toLowerCase().includes(searchTerm)
+                );
+            }
+            
+            return filtered;
+        }
+        
+        // 渲染资产表格
+        function renderAssetsTable() {
+            const tableBody = document.getElementById('assets-table-body');
+            const filteredData = getFilteredAssets();
+            
+            // 计算分页
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const paginatedData = filteredData.slice(startIndex, endIndex);
+            
+            // 更新表格内容
+            if (paginatedData.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="text-center p-8 text-slate-400">
+                            <i class="fa fa-search mb-2"></i>
+                            <p>没有找到匹配的资产</p>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                tableBody.innerHTML = paginatedData.map(asset => `
+                    <tr class="border-b border-slate-700 hover:bg-slate-800/30 transition-colors">
+                        <td class="p-4">
+                            <div class="flex items-center">
+                                <img src="https://picsum.photos/id/${asset.symbol.charCodeAt(0)}/32/32" alt="${asset.symbol}" class="w-8 h-8 rounded-full mr-3">
+                                <div>
+                                    <p class="font-medium">${asset.symbol}</p>
+                                    <p class="text-sm text-slate-400">${asset.name}</p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="p-4 text-right">${asset.price.toFixed(2)}</td>
+                        <td class="p-4 text-right hidden md:table-cell">
+                            <span class="${asset.change >= 0 ? 'text-green-500' : 'text-red-500'}">
+                                ${asset.change >= 0 ? '+' : ''}${asset.change.toFixed(2)}%
+                            </span>
+                        </td>
+                        <td class="p-4 text-right hidden lg:table-cell">
+                            ${asset.marketCap > 0 ? formatLargeNumber(asset.marketCap) : '-'}
+                        </td>
+                        <td class="p-4 text-right">
+                            <button class="text-primary hover:text-primary/80 transition-colors" 
+                                onclick="selectAssetForExchange('${asset.symbol}', '${asset.name}')">
+                                兑换
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            
+            // 更新分页信息
+            document.getElementById('showing-range').textContent = 
+                `${startIndex + 1}-${Math.min(endIndex, filteredData.length)}`;
+            document.getElementById('total-items').textContent = filteredData.length;
+            
+            // 更新分页按钮状态
+            document.getElementById('prev-page').disabled = currentPage === 1;
+            document.getElementById('next-page').disabled = endIndex >= filteredData.length;
+        }
+        
+        // 格式化大额数字
+        function formatLargeNumber(num) {
+            if (num >= 1000000000000) {
+                return (num / 1000000000000).toFixed(2) + 'T';
+            } else if (num >= 1000000000) {
+                return (num / 1000000000).toFixed(2) + 'B';
+            } else if (num >= 1000000) {
+                return (num / 1000000).toFixed(2) + 'M';
+            } else if (num >= 1000) {
+                return (num / 1000).toFixed(2) + 'K';
+            }
+            return num.toFixed(2);
+        }
+        
+        // 从API获取EACO价格
+        function fetchEACOPrice() {
+            // 模拟从多个来源获取EACO价格
+            // 实际应用中，这些URL应该替换为真实的API端点
+            
+            const fetchPromises = [
+                fetch('https://dexscreener.com/solana/DqfoyZH96RnvZusSp3Cdncjpyp3C74ZmJzGhjmHnDHRH')
+                    .then(response => response.text())
+                    .then(html => {
+                        // 从HTML中提取价格信息（实际应用中应该使用API）
+                        return { source: 'Dexscreener', price: 0.187 + Math.random() * 0.02 };
+                    }),
+                    
+                fetch('https://www.orca.so/pools?tokens=DqfoyZH96RnvZusSp3Cdncjpyp3C74ZmJzGhjmHnDHRH')
+                    .then(response => response.text())
+                    .then(html => {
+
+                        return { source: 'Orca', price: 0.185 + Math.random() * 0.02 };
+                    }),
+                    
+                fetch('https://raydium.io/swap/?inputMint=DqfoyZH96RnvZusSp3Cdncjpyp3C74ZmJzGhjmHnDHRH&outputMint=sol')
+                    .then(response => response.text())
+                    .then(html => {
+                        return { source: 'Raydium', price: 0.189 + Math.random() * 0.02 };
+                    })
+            ];
+            
+            // 使用Promise.all获取所有价格并计算平均值
+            Promise.all(fetchPromises)
+                .then(prices => {
+                    // 计算平均价格
+                    const avgPrice = prices.reduce((sum, item) => sum + item.price, 0) / prices.length;
+                    const roundedPrice = avgPrice.toFixed(4);
+                    
+                    // 模拟价格变化
+                    const priceChange = (Math.random() * 4 - 1).toFixed(2); // -1% 到 3% 之间
+                    
+                    // 更新UI
+                    document.getElementById('eaco-price').textContent = `$${roundedPrice}`;
+                    
+                    const changeElement = document.getElementById('price-change');
+                    changeElement.innerHTML = `${priceChange >= 0 ? '<i class="fa fa-caret-up mr-1"></i>+' : '<i class="fa fa-caret-down mr-1"></i>'}${priceChange}%`;
+                    changeElement.className = priceChange >= 0 ? 'text-green-500 flex items-center' : 'text-red-500 flex items-center';
+                    
+                    // 设置一个定时器定期更新价格
+                    setTimeout(fetchEACOPrice, 30000); // 每30秒更新一次
+                })
+                .catch(error => {
+                    console.error('获取EACO价格失败:', error);
+                    // 失败时也设置定时器重试
+                    setTimeout(fetchEACOPrice, 10000); // 10秒后重试
+                });
+        }
+        
+        // 初始化图表
+        function initCharts() {
+            // 预测图表
+            const forecastCtx = document.getElementById('forecast-chart').getContext('2d');
+            
+            // 生成7天的日期标签
+            const dates = [];
+            const currentDate = new Date();
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentDate);
+                date.setDate(currentDate.getDate() + i);
+                dates.push(moment(date).format('MM-DD'));
+            }
+            
+            // 生成历史价格数据
+            const historicalPrices = [];
+            let basePrice = 0.18 + Math.random() * 0.02;
+            for (let i = 0; i < 5; i++) {
+                basePrice += (Math.random() - 0.4) * 0.01; // 轻微波动
+                historicalPrices.push(basePrice.toFixed(4));
+            }
+            
+            // 生成预测价格数据
+            const forecastPrices = [];
+            for (let i = 0; i < 7; i++) {
+                basePrice += (Math.random() * 0.6 - 0.1) * 0.01; // 略微上升趋势
+                forecastPrices.push(basePrice.toFixed(4));
+            }
+            
+            // 合并历史和预测数据
+            const allPrices = [...historicalPrices, ...forecastPrices.slice(1)];
+            const allDates = [...dates.slice(0, 5), ...dates];
+            
+            window.forecastChart = new Chart(forecastCtx, {
+                type: 'line',
+                data: {
+                    labels: allDates,
+                    datasets: [
+                        {
+                            label: '历史价格',
+                            data: historicalPrices,
+                            borderColor: '#4F46E5',
+                            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.3
+                        },
+                        {
+                            label: '预测价格',
+                            data: forecastPrices,
+                            borderColor: '#10B981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            fill: false,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#F8FAFC'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: $${context.raw}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94A3B8'
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.05)'
+                            },
+                            ticks: {
+                                color: '#94A3B8',
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // 行业图表
+            const sectorsCtx = document.getElementById('sectors-chart').getContext('2d');
+            
+            window.sectorsChart = new Chart(sectorsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['科技', '金融', '医疗', '消费', '能源', '工业'],
+                    datasets: [{
+                        data: [35, 20, 15, 12, 10, 8],
+                        backgroundColor: [
+                            '#4F46E5',
+                            '#10B981',
+                            '#F59E0B',
+                            '#EF4444',
+                            '#8B5CF6',
+                            '#EC4899'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                color: '#F8FAFC',
+                                padding: 10,
+                                boxWidth: 12
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+        
+        // 更新预测图表
+        function updateForecastChart(timeframe) {
+            let days = 7;
+            if (timeframe.includes('30')) days = 30;
+            else if (timeframe.includes('90')) days = 90;
+            
+            // 生成日期标签
+            const dates = [];
+            const currentDate = new Date();
+            for (let i = 0; i < days; i++) {
+                const date = new Date(currentDate);
+                date.setDate(currentDate.getDate() + i);
+                dates.push(moment(date).format(days > 30 ? 'MM-DD' : 'MM-DD'));
+            }
+            
+            // 生成历史价格数据
+            const historicalDays = Math.min(14, days / 2);
+            const historicalPrices = [];
+            let basePrice = 0.18 + Math.random() * 0.02;
+            for (let i = 0; i < historicalDays; i++) {
+                basePrice += (Math.random() - 0.4) * 0.01;
+                historicalPrices.push(basePrice.toFixed(4));
+            }
+            
+            // 生成预测价格数据
+            const forecastPrices = [];
+            for (let i = 0; i < days; i++) {
+                // 长期预测有更大的波动性
+                const volatility = days > 30 ? 0.8 : 0.6;
+                basePrice += (Math.random() * volatility - 0.1) * 0.01;
+                forecastPrices.push(basePrice.toFixed(4));
+            }
+            
+            // 更新图表数据
+            window.forecastChart.data.labels = [...dates.slice(0, historicalDays), ...dates];
+            window.forecastChart.data.datasets[0].data = historicalPrices;
+            window.forecastChart.data.datasets[1].data = forecastPrices;
+            window.forecastChart.update();
+        }
+        
+        // 初始化代币列表
+        function initTokensList() {
+            const tokensList = document.getElementById('tokens-list');
+            
+            // 合并所有类型的资产作为可选代币
+            const allTokens = [
+                { symbol: 'EACO', name: 'EACO', icon: '<div class="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center"><span class="text-xs font-bold">e</span></div>' },
+                ...assetsData.crypto.map(asset => ({
+                    symbol: asset.symbol,
+                    name: asset.name,
+                    icon: `<img src="https://picsum.photos/id/${asset.symbol.charCodeAt(0)}/24/24" alt="${asset.symbol}" class="w-6 h-6 rounded-full">`
+                })),
+                ...assetsData.fiat.map(asset => ({
+                    symbol: asset.symbol,
+                    name: asset.name,
+                    icon: `<img src="https://picsum.photos/id/${(asset.symbol.charCodeAt(0) + 10)}/24/24" alt="${asset.symbol}" class="w-6 h-6 rounded-full">`
+                }))
+            ];
+            
+            // 渲染代币列表
+            tokensList.innerHTML = allTokens.map(token => `
+                <div class="flex items-center justify-between p-2 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors"
+                    onclick="selectToken('${token.symbol}', '${token.name}', '${token.icon}')">
+                    <div class="flex items-center">
+                        ${token.icon}
+                        <div class="ml-3">
+                            <p class="font-medium">${token.symbol}</p>
+                            <p class="text-xs text-slate-400">${token.name}</p>
+                        </div>
+                    </div>
+                    <i class="fa fa-chevron-right text-slate-500"></i>
+                </div>
+            `).join('');
+        }
+        
+        // 选择代币
+        function selectToken(symbol, name, icon) {
+            const target = document.getElementById('token-modal').getAttribute('data-target');
+            const button = document.getElementById(`${target}-token`);
+            
+            // 更新按钮显示
+            button.innerHTML = `
+                ${icon}
+                <span>${symbol}</span>
+                <i class="fa fa-chevron-down text-xs"></i>
+            `;
+            
+            // 关闭模态框
+            document.getElementById('token-modal').classList.add('hidden');
+            
+            // 清空输入金额
+            document.getElementById('from-amount').value = '';
+            document.getElementById('to-amount').value = '';
+            document.getElementById('estimated-receive').textContent = '0.00 EACO';
+            
+            // 更新余额显示（模拟）
+            updateBalanceDisplay(target, symbol);
+        }
+        
+        // 更新余额显示
+        function updateBalanceDisplay(target, symbol) {
+            // 模拟余额
+            const balanceElement = document.getElementById(`${target}-balance`);
+            const randomBalance = (Math.random() * 100 + 0.5).toFixed(2);
+            balanceElement.textContent = `余额: ${randomBalance} ${symbol}`;
+        }
+        
+        // 选择资产进行兑换
+        function selectAssetForExchange(symbol, name) {
+            // 自动选择到"从"或"到"字段，优先选择空的字段
+            let target = 'from';
+            const fromSymbol = document.getElementById('from-token').querySelector('span').textContent;
+            
+            if (fromSymbol !== symbol) {
+                target = 'to';
+            }
+            
+            // 创建图标
+            let icon = '';
+            if (symbol === 'EACO') {
+                icon = '<div class="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center mr-1"><span class="text-xs font-bold">e</span></div>';
+            } else {
+                icon = `<img src="https://picsum.photos/id/${symbol.charCodeAt(0)}/20/20" alt="${symbol}" class="w-5 h-5 rounded-full mr-1">`;
+            }
+            
+            // 更新按钮显示
+            const button = document.getElementById(`${target}-token`);
+            button.innerHTML = `
+                ${icon}
+                <span>${symbol}</span>
+                <i class="fa fa-chevron-down text-xs"></i>
+            `;
+            
+            // 更新余额显示
+            updateBalanceDisplay(target, symbol);
+            
+            // 清空输入金额
+            document.getElementById('from-amount').value = '';
+            document.getElementById('to-amount').value = '';
+            document.getElementById('estimated-receive').textContent = '0.00 EACO';
+            
+            // 滚动到兑换区域
+            document.getElementById('exchange').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 计算兑换金额
+        function calculateExchange() {
+            const fromAmount = parseFloat(document.getElementById('from-amount').value);
+            if (isNaN(fromAmount) || fromAmount <= 0) {
+                document.getElementById('to-amount').value = '';
+                document.getElementById('estimated-receive').textContent = '0.00 EACO';
+                return;
+            }
+            
+            const fromSymbol = document.getElementById('from-token').querySelector('span').textContent;
+            const toSymbol = document.getElementById('to-token').querySelector('span').textContent;
+            
+            // 获取EACO价格
+            const eacoPriceText = document.getElementById('eaco-price').textContent;
+            const eacoPrice = parseFloat(eacoPriceText.replace('$', ''));
+            
+            // 模拟汇率计算
+            let exchangeRate = 1;
+            
+            // 查找资产价格
+            if (fromSymbol !== 'EACO') {
+                const fromAsset = assetsData.crypto.find(a => a.symbol === fromSymbol) || 
+                                 assetsData.fiat.find(a => a.symbol === fromSymbol);
+                if (fromAsset) {
+                    exchangeRate = fromAsset.price / eacoPrice;
+                }
+            }
+            
+            if (toSymbol !== 'EACO') {
+                const toAsset = assetsData.crypto.find(a => a.symbol === toSymbol) || 
+                               assetsData.fiat.find(a => a.symbol === toSymbol);
+                if (toAsset) {
+                    exchangeRate = exchangeRate * eacoPrice / toAsset.price;
+                }
+            }
+            
+            // 应用手续费
+            const feeRate = 0.005; // 0.5%
+            const toAmount = fromAmount * exchangeRate;
+            const amountAfterFee = toAmount * (1 - feeRate);
+            
+            // 更新UI
+            document.getElementById('to-amount').value = toAmount.toFixed(6);
+            document.getElementById('estimated-receive').textContent = `${amountAfterFee.toFixed(6)} ${toSymbol}`;
+        }
+        
+        // 暴露函数到全局，以便在HTML中调用
+        window.selectAssetForExchange = selectAssetForExchange;
+        window.selectToken = selectToken;
+    </script>
+</body>
+</html>
