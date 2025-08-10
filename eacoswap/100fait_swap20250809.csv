@@ -3,7 +3,7 @@ rank,currency_code,country,per_unit_eaco,eaco_per_unit,usdt_rate,cnh_rate
 2,EUR,Eurozone,58200,0.00001718,0.92,6.62
 3,JPY,Japan,360,0.002777,0.0066,0.048
 4,GBP,United Kingdom,68100,0.00001468,1.25,8.98
-5,CNY,China (Onshore),7775,0.0001286,0.14,1.00
+5,CNH,China (Offshore),7775,0.0001286,0.14,1.00
 6,AUD,Australia,35400,0.00002825,0.66,4.74
 7,CDN,Canada,39800,0.00002513,0.74,5.32
 8,CHF,Switzerland,59500,0.00001681,1.10,7.92
