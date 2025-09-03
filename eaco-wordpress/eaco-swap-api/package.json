@@ -1,0 +1,22 @@
+{
+  "name": "@eaco-protocol/swap-api",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "EACO 宇宙兑换 API - 连接地球与星际的价值流动",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "dependencies": {
+    "@jup-ag/core": "^1.0.2",
+    "@solana/web3.js": "^1.95.3",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": ["eaco", "solana", "swap", "api", "universe"],
+  "author": "EACO Protocol",
+  "license": "MIT"
+}
