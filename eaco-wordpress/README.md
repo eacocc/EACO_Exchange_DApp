@@ -1,7 +1,13 @@
 EACO+wordpress插件v0.000000001
 
+<img width="685" height="665" alt="image" src="https://github.com/user-attachments/assets/f3e6215c-2657-44a3-b982-31ac17073c6c" />
+
+
+<img width="914" height="603" alt="image" src="https://github.com/user-attachments/assets/a5be73c8-fa32-4a81-95ee-40d140d2acf6" />
+
+
 实现说明
-这个方案实现了 EACO 生态与 WordPress 的无缝集成，包含三个核心部分：
+这个完整方案实现了 EACO 生态与 WordPress 的无缝集成，包含三个核心部分：
 Node.js 兑换 API：
 基于 Solana 区块链和 Jupiter 聚合器
 支持 EACO 与 USDC/USDT/SOL 的实时兑换估算
@@ -17,9 +23,7 @@ WordPress 插件：
 Node.js API 可部署在 Vercel、Railway 等平台
 WordPress 插件可直接压缩为 ZIP 上传安装
 所有数据实时更新，支持多语言扩展
-
 使用方法
-
 部署 Node.js 兑换 API：
 bash
 cd eaco-swap-api
@@ -35,4 +39,3 @@ npm start
 在 eaco-functions.php 中更新 EACO_SWAP_API_URL 为你的 API 地址
 可自定义哲学语句和样式
 这个方案不仅实现了技术上的闭环，更通过哲学语句系统传递了 EACO 连接地球与宇宙的核心价值理念。
-
